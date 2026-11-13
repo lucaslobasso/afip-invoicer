@@ -33,7 +33,7 @@ module.exports = {
     {
       name: '@electron-forge/publisher-github',
       config: {
-        repository: { owner: 'lucaslobasso', name: 'afip-invoicer' },
+        repository: { owner: 'lucaslobasso', name: 'croessant' },
         draft: true,
       },
     },

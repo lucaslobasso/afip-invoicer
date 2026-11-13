@@ -11,28 +11,28 @@
 <p align="center">
   ¡La forma más rápida y fácil de generar tus facturas!
   <br/>
-  <a href="https://github.com/lucaslobasso/afip-invoicer/releases"><strong>Haga click aquí para descargar</strong></a>
+  <a href="https://github.com/lucaslobasso/croessant/releases"><strong>Haga click aquí para descargar</strong></a>
   <br/>
   <br/>
-  <a href="https://github.com/lucaslobasso/afip-invoicer/issues">Reportar un bug</a>
+  <a href="https://github.com/lucaslobasso/croessant/issues">Reportar un bug</a>
   ·
-  <a href="https://github.com/lucaslobasso/afip-invoicer/issues">Pedir un feature</a>
+  <a href="https://github.com/lucaslobasso/croessant/issues">Pedir un feature</a>
 </p>
 
 <!-- Shields -->
 <div align="center">
 
-  ![GitHub release (latest by date)](https://img.shields.io/github/v/release/lucaslobasso/afip-invoicer)
-  ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/lucaslobasso/afip-invoicer/build.yaml?branch=main)
-  ![GitHub issues](https://img.shields.io/github/issues/lucaslobasso/afip-invoicer)
-  ![GitHub contributors](https://img.shields.io/github/contributors-anon/lucaslobasso/afip-invoicer)
-  ![GitHub forks](https://img.shields.io/github/forks/lucaslobasso/afip-invoicer?style=social)
+  ![GitHub release (latest by date)](https://img.shields.io/github/v/release/lucaslobasso/croessant)
+  ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/lucaslobasso/croessant/build.yaml?branch=main)
+  ![GitHub issues](https://img.shields.io/github/issues/lucaslobasso/croessant)
+  ![GitHub contributors](https://img.shields.io/github/contributors-anon/lucaslobasso/croessant)
+  ![GitHub forks](https://img.shields.io/github/forks/lucaslobasso/croessant?style=social)
 </div>
 <div align="center">
 
-  ![GitHub all releases](https://img.shields.io/github/downloads/lucaslobasso/afip-invoicer/total)
-  ![GitHub Release Date](https://img.shields.io/github/release-date/lucaslobasso/afip-invoicer)
-  ![GitHub](https://img.shields.io/github/license/lucaslobasso/afip-invoicer?color=4884c9)
+  ![GitHub all releases](https://img.shields.io/github/downloads/lucaslobasso/croessant/total)
+  ![GitHub Release Date](https://img.shields.io/github/release-date/lucaslobasso/croessant)
+  ![GitHub](https://img.shields.io/github/license/lucaslobasso/croessant?color=4884c9)
 </div>
 
 <!-- Table of contents -->
@@ -136,7 +136,7 @@ El código está organizado en:
 <!-- Roadmap -->
 ## Roadmap
 
-Mirá los [open issues](https://github.com/lucaslobasso/afip-invoicer/issues) para el listado de los features propuestos (e issues conocidos).
+Mirá los [open issues](https://github.com/lucaslobasso/croessant/issues) para el listado de los features propuestos (e issues conocidos).
 
 
 <!-- Contributing -->
@@ -162,4 +162,4 @@ Distribuido bajo la MIT License. Leer `LICENSE.md` para más información.
 
 Lucas Damián Lobasso - lobassolucas@gmail.com
 
-Link del proyecto: [https://github.com/lucaslobasso/afip-invoicer](https://github.com/lucaslobasso/afip-invoicer)
+Link del proyecto: [https://github.com/lucaslobasso/croessant](https://github.com/lucaslobasso/croessant)
