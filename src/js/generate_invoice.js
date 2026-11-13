@@ -1,71 +1,139 @@
+let datePicker, appInfo,
+    lastInvoice = { number: 0, date: null },
+    dateRange   = null;
 
-$(document).ready(async function() {
+$(async function() {
     let btn    = $("#generateInvoice"),
         fields = $("#invoice-fields");
 
-    submitSpinner(btn, fields);
-    await initAfipConnection();
-    bindDatePicker();
-    updateDatePicker().setDate(new Date(Date.now()));
-    submitSpinner(btn, fields, false);
+    fields.prop("disabled", true);
+
+    try {
+        appInfo = await api.info();
+        $("#amount-help").text(`Debe ser mayor a 0 y menor a ${formatAmount(appInfo.maxAmount)}.`);
+
+        if (!await connectToArca()) {
+            return;
+        }
+
+        datePicker = new Datepicker($("#date")[0], {
+            autohide        : true,
+            todayHighlight  : true,
+            orientation     : "bottom",
+            language        : "es"
+        });
+
+        await updateLastInvoice();
+
+        $("#concept").on("change", refresh(updateDateRange));
+        $("#pointOfSale").on("change", refresh(updateLastInvoice));
+        btn.on("click", generateInvoice);
+    }
+    catch (e) {
+        errorMessage(e);
+    }
+
+    $("#page-loader").removeClass("is-active");
+    setLoading(btn, fields, false);
 });
 
-async function generateInvoice(elem) {
-    let btn    = $(elem),
+/** Envuelve una actualización bloqueando el formulario mientras corre. */
+function refresh(update) {
+    return async function() {
+        let btn    = $("#generateInvoice"),
+            fields = $("#invoice-fields");
+
+        if (!setLoading(btn, fields)) {
+            return;
+        }
+
+        try {
+            await update();
+        }
+        catch (e) {
+            errorMessage(e);
+        }
+
+        setLoading(btn, fields, false);
+    };
+}
+
+async function updateLastInvoice() {
+    lastInvoice = await api.lastInvoice($("#pointOfSale").val());
+    await updateDateRange();
+}
+
+/** Limita el selector al rango de fechas que ARCA acepta hoy para el concepto elegido. */
+async function updateDateRange() {
+    dateRange = await api.invoiceDateRange($("#concept").val(), lastInvoice.date);
+
+    let min      = fromArcaDate(dateRange.min),
+        max      = fromArcaDate(dateRange.max),
+        current  = datePicker.getDate(),
+        today    = toArcaDate(new Date()),
+        fallback = fromArcaDate(Math.min(Math.max(today, dateRange.min), dateRange.max));
+
+    datePicker.setOptions({ minDate: min, maxDate: max });
+
+    if (!current || current < min || current > max) {
+        datePicker.setDate(fallback);
+    }
+}
+
+async function generateInvoice() {
+    let btn    = $("#generateInvoice"),
         fields = $("#invoice-fields");
 
-    if (!submitSpinner(btn, fields) && validateForm()) {
-        await generateAfipInvoice();
-        updateDatePicker();
+    if (!validateForm() || !setLoading(btn, fields)) {
+        return;
     }
 
-    submitSpinner(btn, fields, false);
-}
+    try {
+        let invoice = await api.createInvoice({
+            pointOfSale : $("#pointOfSale").val(),
+            concept     : $("#concept").val(),
+            date        : String(toArcaDate(datePicker.getDate())),
+            amount      : $("#amount").val()
+        });
 
-function bindDatePicker() {
-    let concept     = $("#concept"),
-        pointOfSale = $("#pointOfSale");
-
-    concept.on("change", updateDatePicker);
-    pointOfSale.on("change", function() {
-        updateLastInvoiceDate();
-    });
-}
-
-function updateDatePicker() {
-    let concept   = $("#concept").val(),
-        date      = $("#date"),
-        oldPicker = $(".datepicker"),
-        minDate   = addDate(new Date(), concept > 1 ? -10 : -5);
-
-    if (oldPicker.length) {
-        oldPicker.remove();
+        $("#amount").val("");
+        lastInvoice = { number: invoice.number, date: invoice.date };
+        successMessage(`Comprobante nº ${invoice.number} generado correctamente. CAE: ${invoice.cae}`);
+        await updateDateRange();
     }
-    
-    if (lastInvoiceDate && lastInvoiceDate > minDate) {
-        minDate = lastInvoiceDate;
+    catch (e) {
+        errorMessage(e);
     }
 
-    return generateDatePicker(date, minDate);
+    setLoading(btn, fields, false);
 }
 
 function validateForm() {
-    return validateDatePicker() && validateAmount();
+    // Se evalúan los dos para marcar todos los campos inválidos a la vez.
+    let validDate   = validateDate(),
+        validAmount = validateAmount();
+
+    return validDate && validAmount;
+}
+
+function validateDate() {
+    let date  = datePicker.getDate(),
+        value = date ? toArcaDate(date) : 0;
+
+    if (dateRange && value >= dateRange.min && value <= dateRange.max) {
+        return true;
+    }
+
+    invalidInput($("#date"));
+    return false;
 }
 
 function validateAmount() {
-    let input  = $("#amount");
+    let input  = $("#amount"),
+        amount = parseFloat(input.val());
 
-    try {
-        let value  = input.val(),
-            amount = parseFloat(value);
-
-        if (amount > 0 && amount < 7600) {
-            return true;
-        }
-    } 
-    catch (e) {
-        errorMessage(e);
+    if (amount > 0 && amount < appInfo.maxAmount) {
+        return true;
     }
 
     invalidInput(input);

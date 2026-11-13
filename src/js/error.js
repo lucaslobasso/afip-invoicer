@@ -1,22 +1,9 @@
-const activeWindow  = electron.getCurrentWindow();
-const viewsPath     = __dirname.replace("/error", "");
+// Muestra el detalle del error (si lo hay) que llega en la URL.
+// Los botones de reintento navegan solos vía `data-view` (ver main.js).
+$(function() {
+    let detail = new URLSearchParams(window.location.search).get("detail");
 
-function retryConnection(elem) {
-    let btn = $(elem);
-
-    if (!submitSpinner(btn)) {
-        activeWindow.loadFile(path.join(viewsPath, 'generate_invoice.html'));
+    if (detail) {
+        $("#error-detail").text(detail).removeClass("is-hidden");
     }
-    
-    submitSpinner(btn, false);
-}
-
-function retryConfiguration(elem) {
-    let btn = $(elem);
-
-    if (!submitSpinner(btn)) {
-        activeWindow.loadFile(path.join(viewsPath, 'configurate.html'));
-    }
-    
-    submitSpinner(btn, false);
-}
+});

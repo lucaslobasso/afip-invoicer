@@ -1,73 +1,67 @@
 const { app, shell, BrowserWindow } = require('electron');
-const { promises: fs, constants }   = require('fs');
-const path                          = require('path');
-const assestPath                    = app.getPath("userData");
-const viewsPath                     = path.join(__dirname, 'views');
-
-require('@electron/remote/main').initialize();
+const path = require('node:path');
+const { ConfigStore } = require('./main/config');
+const { registerIpc } = require('./main/ipc');
+const { ArcaService } = require('./arca/service');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
-if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
+if (require('electron-squirrel-startup')) {
   app.quit();
 }
 
+const viewsPath = path.join(__dirname, 'views');
+// CROESSANT_ENV=homologation usa los servidores de prueba de ARCA (requiere un certificado de homologación).
+const environment = process.env.CROESSANT_ENV === 'homologation' ? 'homologation' : 'production';
+const dataPath = app.getPath('userData');
+const config = new ConfigStore(dataPath);
+const arca = new ArcaService({
+  environment,
+  ticketDir: dataPath,
+  loadCredentials: () => config.credentials(),
+});
+
 const createWindow = async () => {
-  // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 500,
     height: 900,
-    icon: path.join(app.getAppPath(), "assets/icon.png"),
+    icon: path.join(app.getAppPath(), 'assets/icon.png'),
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-      enableRemoteModule: true
-    }
+      preload: path.join(__dirname, 'main/preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
   });
 
-  if (await configurated()) {
-    mainWindow.loadFile(path.join(viewsPath, 'generate_invoice.html'));
-  } else {
-    mainWindow.loadFile(path.join(viewsPath, 'configurate.html'));
-  }
-
+  // Los links externos se abren en el navegador; la ventana solo muestra las vistas locales.
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    if (url.startsWith('https://')) shell.openExternal(url);
     return { action: 'deny' };
   });
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (!url.startsWith('file://')) event.preventDefault();
+  });
 
-  // Open the DevTools.
-  //mainWindow.webContents.openDevTools();
+  const view = (await config.isConfigured()) ? 'generate_invoice.html' : 'configurate.html';
+  // La vista puede navegar (p. ej. a una pantalla de error) antes de terminar de cargar.
+  mainWindow.loadFile(path.join(viewsPath, view)).catch(() => {});
 };
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
-app.on('ready', createWindow);
+app.whenReady().then(() => {
+  registerIpc({ config, arca, environment });
+  createWindow();
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
+  app.on('activate', () => {
+    // On macOS it's common to re-create a window when the dock icon is clicked.
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
+});
+
+// Quit when all windows are closed, except on macOS.
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
-
-app.on('activate', () => {
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
-});
-
-async function configurated() {
-  try {
-    await fs.access(path.join(assestPath, 'cert.crt'), constants.R_OK);
-    await fs.access(path.join(assestPath, 'key.key'), constants.R_OK);
-    await fs.access(path.join(assestPath, 'cuit.txt'), constants.R_OK);
-    return true;
-  } catch (e) {
-    return false;
-  }
-}

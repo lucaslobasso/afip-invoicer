@@ -1,21 +1,23 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
   <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
     <title>Croessant</title>
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vanillajs-datepicker@1.1.4/dist/css/datepicker.min.css">
+    <link rel="stylesheet" href="../../node_modules/@fontsource/lato/400.css">
+    <link rel="stylesheet" href="../../node_modules/@fontsource/lato/700.css">
+    <link rel="stylesheet" href="../../node_modules/animate.css/animate.min.css">
+    <link rel="stylesheet" href="../../node_modules/vanillajs-datepicker/dist/css/datepicker.min.css">
     <link rel="stylesheet" href="../css/main.css">
 
-    <script src="https://cdn.jsdelivr.net/npm/vanillajs-datepicker@1.1.4/dist/js/datepicker-full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vanillajs-datepicker@1.1.4/dist/js/locales/es.js"></script>
-
+    <script src="../../node_modules/jquery/dist/jquery.min.js"></script>
     <script src="../../node_modules/@fortawesome/fontawesome-free/js/all.min.js"></script>
     <script src="../../node_modules/bulma-toast/dist/bulma-toast.min.js"></script>
+    <script src="../../node_modules/vanillajs-datepicker/dist/js/datepicker-full.min.js"></script>
+    <script src="../../node_modules/vanillajs-datepicker/dist/js/locales/es.js"></script>
 
     <script defer src="../js/main.js"></script>
-    <script defer src="../js/afip.js"></script>
     <script defer src="../js/generate_invoice.js"></script>
   </head>
   <body class="is-flex is-flex-direction-column">
@@ -32,15 +34,15 @@
             <div class="navbar-end">
               <div class="navbar-item">
                 <div class="buttons are-small">
-                  <div class="button is-primary is-rounded has-tooltip-primary has-tooltip-left" onclick="initAfipConnection();" data-tooltip="Reconectar">
+                  <button class="button is-primary is-rounded has-tooltip-primary has-tooltip-left" data-action="reconnect" data-tooltip="Reconectar" type="button">
                     <i class="fas fa-sync"></i>
-                  </div>
-                  <div class="button is-primary is-rounded has-tooltip-primary has-tooltip-left" onclick="loadInvoicesListView(this);" data-tooltip="Consulta de comprobantes">
+                  </button>
+                  <button class="button is-primary is-rounded has-tooltip-primary has-tooltip-left" data-view="invoices_list.html" data-tooltip="Consulta de comprobantes" type="button">
                     <i class="fas fa-list"></i>
-                  </div>
-                  <div class="button is-light is-rounded has-tooltip-primary has-tooltip-left" onclick="loadConfigurationView(this);" data-tooltip="Configuración">
+                  </button>
+                  <button class="button is-light is-rounded has-tooltip-primary has-tooltip-left" data-view="configurate.html" data-tooltip="Configuración" type="button">
                     <i class="fas fa-cog"></i>
-                  </div>
+                  </button>
                 </div>
               </div>
             </div>
@@ -55,9 +57,9 @@
     <section id="app-body" class="section is-flex is-flex-direction-column is-flex-grow-1">
         <fieldset id="invoice-fields" class="is-flex-grow-1">
           <div class="field">
-            <label class="label">Concepto</label>
+            <label class="label" for="concept">Concepto</label>
             <div class="select">
-              <select id="concept" data-val="2">
+              <select id="concept">
                 <option value="1">Productos</option>
                 <option value="2">Servicios</option>
                 <option value="3">Productos y Servicios</option>
@@ -66,34 +68,34 @@
           </div>
           <div class="field is-grouped">
             <div class="field is-expanded">
-              <label class="label">Punto de venta</label>
+              <label class="label" for="pointOfSale">Punto de venta</label>
               <div class="select">
                 <select id="pointOfSale"></select>
               </div>
             </div>
             <div class="field">
-              <label class="label">Fecha</label>
+              <label class="label" for="date">Fecha</label>
               <div class="control">
-                <input id="date" class="input" type="text">
+                <input id="date" class="input" type="text" autocomplete="off">
               </div>
               <p class="help is-danger is-hidden">Fecha inválida.</p>
             </div>
           </div>
           <div class="field">
-            <label class="label">Monto</label>
+            <label class="label" for="amount">Monto</label>
             <div class="control">
-                <input id="amount" class="input" type="number">
+                <input id="amount" class="input" type="number" min="0.01" step="0.01">
             </div>
-            <p class="help is-danger is-hidden">Debe ser mayor a 0 y menor a 7500.</p>
+            <p id="amount-help" class="help is-danger is-hidden">Monto inválido.</p>
           </div>
         </fieldset>
-        <button id="generateInvoice" class="button is-medium is-success is-loading is-fullwidth" onclick="generateInvoice(this);" type="button">Generar</button>
+        <button id="generateInvoice" class="button is-medium is-success is-loading is-fullwidth" type="button">Generar</button>
     </section>
-    <div id="page-loader" class="pageloader is-bottom-to-top is-active"><span class="title">Conectando con la AFIP...</span></div>
+    <div id="page-loader" class="pageloader is-bottom-to-top is-active"><span class="title">Conectando con ARCA...</span></div>
     <footer id="app-footer" class="footer">
       <div class="content has-text-centered">
         <p><strong>Croessant</strong> hecho por Lucas Lobasso.</p>
-        <p>Código open-source disponible en <a href="https://github.com/lucaslobasso/afip_invoicer" target="_blank">Github</a>.</p>
+        <p>Código open-source disponible en <a href="https://github.com/lucaslobasso/croessant" target="_blank" rel="noopener">Github</a>.</p>
       </div>
     </footer>
   </body>

@@ -1,93 +1,101 @@
+let rangePicker;
 
-$(document).ready(async function() {
-    let btn    = $("#loadMore"),
-        fields = $("#invoice-fields");
+$(async function() {
+    let btn    = $("#searchInvoices"),
+        fields = $("#filter-fields");
 
-    submitSpinner(btn, fields);
-    await initAfipConnection();
-    bindPointOfSale();
-    updateDateRangePicker().setDates(addDate(new Date(), -1), new Date());
-    submitSpinner(btn, fields, false);
+    fields.prop("disabled", true);
+
+    try {
+        if (!await connectToArca()) {
+            return;
+        }
+
+        rangePicker = new DateRangePicker($("#range")[0], {
+            autohide        : true,
+            todayHighlight  : true,
+            orientation     : "bottom",
+            maxDate         : addDate(new Date(), 10),
+            language        : "es"
+        });
+        rangePicker.setDates(addDate(new Date(), -1), new Date());
+
+        btn.on("click", searchInvoices);
+        $("#pointOfSale").on("change", searchInvoices);
+    }
+    catch (e) {
+        errorMessage(e);
+    }
+
+    $("#page-loader").removeClass("is-active");
+    fields.prop("disabled", false);
+
     await searchInvoices();
 });
 
-function bindPointOfSale() {
-    let input  = $("#pointOfSale"),
-        search = $("#searchInvoices"),
-        fields = $("#invoice-fields");
+async function searchInvoices() {
+    let btn     = $("#searchInvoices"),
+        fields  = $("#filter-fields"),
+        spinner = $("#invoices-loader"),
+        noData  = $("#invoice-list-no-items"),
+        total   = $("#invoices-total"),
+        [from, to] = rangePicker ? rangePicker.getDates() : [];
 
-    input.on("change", async function() {
-        submitSpinner(search, fields);
-        await updateLastInvoice();
-        submitSpinner(search, fields, false);
-    });
-}
-
-function updateDateRangePicker() {
-    let range     = $("#range"),
-        oldPicker = $(".datepicker");
-
-    if (oldPicker.length) {
-        oldPicker.remove();
+    if (!from || !to) {
+        errorMessage("Elegí un rango de fechas.");
+        return;
     }
-
-    return generateDateRangePicker(range);
-}
-
-async function searchInvoices(elem) {
-    let btn    = $(elem),
-        fields = $("#filter-fields");
-
-    if (!submitSpinner(btn, fields) && validateDatePicker(2)) {
-        await searchAfipInvoices();
+    if (!setLoading(btn, fields)) {
+        return;
     }
-
-    submitSpinner(btn, fields, false);
-}
-
-async function searchAfipInvoices() {
-    let spinner  = $("#invoices-loader"),
-        list     = $("#invoices-list"),
-        template = $("#invoice-list-item-template"),
-        noData   = $("#invoice-list-no-items"),
-        items    = $(".invoice-list-item:not([id])"),
-        total    = $("#invoices-total");
 
     spinner.addClass("is-active");
     noData.addClass("is-hidden");
     total.addClass("is-hidden");
-    items.remove();
-    
-    if (lastInvoiceNumber > 0) {
-        let from = $("[name='start']").val(),
-            to   = $("[name='end']").val(),
-            invs = await getInvoicesListInfo(getDate(from), addDate(getDate(to), 1)),
-            clone, totalAmount;
+    $(".invoice-list-item:not([id])").remove();
 
-        if (invs.length) {
-            totalAmount = invs.reduce((a, b) => a + (parseInt(b["ImpTotal"]) || 0), 0);
-            invs.forEach(invoice => {
-                clone = template.clone();
-                
-                clone.removeAttr("id");
-                clone.removeClass("is-hidden");
-                clone.find(".invoice-number").html(invoice.CbteDesde);
-                clone.find(".invoice-date").html(parseInvoiceDate(invoice.CbteFch).toLocaleDateString());
-                clone.find(".invoice-concept").html(parseInvoiceConcept(invoice.Concepto));
-                clone.find(".invoice-amount").html("$" + parseAmount(invoice.ImpTotal));
-                clone.appendTo(list);
-            });
+    try {
+        let invoices = await api.listInvoices({
+            pointOfSale : $("#pointOfSale").val(),
+            from        : String(toArcaDate(from)),
+            to          : String(toArcaDate(to))
+        });
 
-            total.removeClass("is-hidden");
-            total.find(".total-amount").html("$" + parseAmount(totalAmount));
-        }
-        else {
-            noData.removeClass("is-hidden");
-        }
+        showInvoices(invoices);
     }
-    else {
-        noData.removeClass("is-hidden");
+    catch (e) {
+        errorMessage(e);
     }
 
     spinner.removeClass("is-active");
+    setLoading(btn, fields, false);
+}
+
+function showInvoices(invoices) {
+    let list     = $("#invoices-list"),
+        template = $("#invoice-list-item-template"),
+        total    = $("#invoices-total");
+
+    if (!invoices.length) {
+        $("#invoice-list-no-items").removeClass("is-hidden");
+        return;
+    }
+
+    invoices.forEach(invoice => {
+        let item = template.clone();
+
+        item.removeAttr("id");
+        item.removeClass("is-hidden");
+        item.find(".invoice-number").text(invoice.number);
+        item.find(".invoice-date").text(formatDate(invoice.date));
+        item.find(".invoice-concept").text(CONCEPTS[invoice.concept] || "");
+        item.find(".invoice-amount").text(formatAmount(invoice.total));
+        item.appendTo(list);
+    });
+
+    // Se suma en centavos para no arrastrar errores de punto flotante.
+    let cents = invoices.reduce((sum, invoice) => sum + Math.round(invoice.total * 100), 0);
+
+    total.find(".total-amount").text(formatAmount(cents / 100));
+    total.removeClass("is-hidden");
 }
