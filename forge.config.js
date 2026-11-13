@@ -25,8 +25,9 @@ module.exports = {
     // `name` fijo para conservar el id de instalación de las versiones anteriores.
     { name: '@electron-forge/maker-squirrel', config: { name: 'Croessant' } },
     { name: '@electron-forge/maker-zip', platforms: ['darwin'] },
-    { name: '@electron-forge/maker-deb', config: {} },
-    { name: '@electron-forge/maker-rpm', config: {} },
+    // `bin` tiene que coincidir con `executableName`.
+    { name: '@electron-forge/maker-deb', config: { options: { bin: 'Croessant' } } },
+    { name: '@electron-forge/maker-rpm', config: { options: { bin: 'Croessant' } } },
   ],
   publishers: [
     {
