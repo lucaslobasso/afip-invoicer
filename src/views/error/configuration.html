@@ -1,12 +1,16 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
   <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
     <title>Croessant</title>
-    
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+    <link rel="stylesheet" href="../../../node_modules/@fontsource/lato/400.css">
+    <link rel="stylesheet" href="../../../node_modules/@fontsource/lato/700.css">
+    <link rel="stylesheet" href="../../../node_modules/animate.css/animate.min.css">
     <link rel="stylesheet" href="../../css/main.css">
 
+    <script src="../../../node_modules/jquery/dist/jquery.min.js"></script>
     <script src="../../../node_modules/@fortawesome/fontawesome-free/js/all.min.js"></script>
     <script src="../../../node_modules/bulma-toast/dist/bulma-toast.min.js"></script>
 
@@ -21,16 +25,17 @@
     </section>
     <section id="app-body" class="section is-flex is-flex-direction-column is-flex-grow-1">
         <div class="container has-text-centered is-flex is-flex-direction-column is-flex-grow-1 is-justify-content-center is-align-items-center">
-          <span class="icon is-large has-text-danger"><i class="fas fa-exclamation-triangle" style="font-size: 80px;"></i></span>
-          <p class="mt-6">La AFIP rechazó la combinación del CUIT/CUIL y los documentos proporcionados. Vuelva a realizar la configuración.</p>
+          <span class="icon is-large has-text-danger"><i class="fas fa-exclamation-triangle fa-4x"></i></span>
+          <p class="mt-6">ARCA rechazó la combinación del CUIT/CUIL y los documentos proporcionados. Vuelva a realizar la configuración.</p>
+          <p id="error-detail" class="mt-4 is-size-7 has-text-grey is-hidden"></p>
         </div>
-      
-        <button class="button is-medium is-danger is-fullwidth" onclick="retryConfiguration();" type="button">Reconfigurar</button>
+
+        <button class="button is-medium is-danger is-fullwidth" data-view="../configurate.html" type="button">Reconfigurar</button>
     </section>
     <footer id="app-footer" class="footer">
       <div class="content has-text-centered">
         <p><strong>Croessant</strong> hecho por Lucas Lobasso.</p>
-        <p>Código open-source disponible en <a href="https://github.com/lucaslobasso/afip_invoicer" target="_blank">Github</a>.</p>
+        <p>Código open-source disponible en <a href="https://github.com/lucaslobasso/afip-invoicer" target="_blank" rel="noopener">Github</a>.</p>
       </div>
     </footer>
   </body>

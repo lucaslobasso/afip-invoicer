@@ -1,9 +1,8 @@
-const { promises: fs, constants } = require('fs');
-const electron   = require('@electron/remote');
-const path       = require('path');
-const assestPath = electron.app.getPath("userData");
+// Código común a todas las vistas. Las vistas no tienen acceso a Node:
+// todo lo que toca el disco o ARCA pasa por `window.croessant` (ver src/main/preload.js).
+const api = window.croessant;
 
-window.$ = window.jQuery = require('jquery');
+const CONCEPTS = { 1: 'Productos', 2: 'Servicios', 3: 'Productos y Servicios' };
 
 bulmaToast.setDefaults({
     type: 'is-danger',
@@ -14,185 +13,131 @@ bulmaToast.setDefaults({
     animate: { in: 'fadeIn', out: 'fadeOut' }
 });
 
-async function initAfipConnection() {
-    let spinner = $("#page-loader");
+$(function() {
+    // Navegación entre vistas y reconexión, sin handlers inline (los bloquea la CSP).
+    $(document).on("click", "[data-view]", function() {
+        if (setLoading($(this))) {
+            goTo($(this).data("view"));
+        }
+    });
+    $(document).on("click", "[data-action='reconnect']", function() {
+        window.location.reload();
+    });
+});
 
-    spinner.addClass("is-active");
-    await initAfip();
-    spinner.removeClass("is-active");
+function goTo(view) {
+    window.location.href = view;
 }
 
-function loadPointsOfSale() {
-    let input = $("#pointOfSale");
-
-    if (input.length && pointsOfSale && pointsOfSale.length) {
-        pointsOfSale.forEach(point => {
-            input.append($("<option />", { html: `${point.Nro}: ${point.EmisionTipo}`, value: point.Nro }));
-        });
-
-        if (pointsOfSale.length == 1) {
-            input.attr("disabled", "");
-        }
-        else {
-            input.removeAttr("disabled");
-        }
-    }
+function escapeHtml(text) {
+    return $("<div />").text(text).html();
 }
 
 function successMessage(msg) {
-    bulmaToast.toast({ message: msg.toString(), type: 'is-success' });
+    bulmaToast.toast({ message: escapeHtml(msg), type: 'is-success', duration: 5000 });
 }
 
-function errorMessage(msg) {
-    bulmaToast.toast({ message: msg.toString() });
-    console.log(msg);
+function errorMessage(error) {
+    let msg = error && error.message ? error.message : String(error);
+
+    // Los errores de ARCA suelen ser largos: se muestran más tiempo.
+    bulmaToast.toast({ message: escapeHtml(msg), duration: 8000 });
+    console.error(error);
 }
 
 function infoMessage(msg) {
-    bulmaToast.toast({ message: msg.toString(), type: 'is-info' });
+    bulmaToast.toast({ message: escapeHtml(msg), type: 'is-info' });
 }
 
-function submitSpinner(btn, fields, loading = true) {
-    if (loading) {
-        if (btn.hasClass("is-loading")) {
-            fields.attr("disabled", "");
-            return true;
-        }
-
-        if (fields) {
-            fields.attr("disabled", "");
-        }
-        btn.addClass("is-loading");
-    }
-    else {
-        if (fields) {
-            fields.removeAttr("disabled");
-        }
-        btn.removeClass("is-loading");
+/**
+ * Marca un botón (y opcionalmente un fieldset) como "trabajando".
+ * Al activar devuelve `false` si ya estaba trabajando, para evitar envíos dobles.
+ */
+function setLoading(btn, fields, loading = true) {
+    if (loading && btn.hasClass("is-loading")) {
+        return false;
     }
 
-    return false;
-}
+    btn.toggleClass("is-loading", loading);
 
-function loadInvoicesListView(elem) {
-    let btn = $(elem);
-
-    if (!submitSpinner(btn)) {
-        activeWindow.loadFile(path.join(__dirname, 'invoices_list.html'));
+    if (fields) {
+        fields.prop("disabled", loading);
     }
-    
-    submitSpinner(btn, false);
-}
 
-function loadGenerateInvoiceView(elem) {
-    let btn = $(elem);
-
-    if (!submitSpinner(btn)) {
-        activeWindow.loadFile(path.join(__dirname, 'generate_invoice.html'));
-    }
-    
-    submitSpinner(btn, false);
-}
-
-function loadConfigurationView(elem) {
-    let btn = $(elem);
-
-    if (!submitSpinner(btn)) {
-        activeWindow.loadFile(path.join(__dirname, 'configurate.html'));
-    }
-    
-    submitSpinner(btn, false);
+    return true;
 }
 
 function invalidInput(input, invalid = true) {
     let validation = input.closest(".field").find("p.help");
 
-    if (invalid) {
-        input.addClass("is-danger");
-        validation.removeClass("is-hidden");
-    }
-    else {
-        input.removeClass("is-danger");
-        validation.addClass("is-hidden");
-    }
+    input.toggleClass("is-danger", invalid);
+    validation.toggleClass("is-hidden", !invalid);
 
-    input.unbind("change.validation").on("change.validation", function() { 
+    input.off(".validation").one("change.validation input.validation changeDate.validation", function() {
         invalidInput(input, false);
     });
 }
 
-function generateDatePicker(elem, minDate) {
-    let concept = $("#concept").val();
+/**
+ * Conecta con ARCA y carga los puntos de venta en `#pointOfSale`.
+ * Si algo falla navega a la pantalla de error correspondiente y devuelve `false`.
+ */
+async function connectToArca() {
+    let spinner = $("#page-loader"),
+        input   = $("#pointOfSale"),
+        result;
 
-    return new Datepicker(elem[0], {
-        autohide        : true,
-        todayHighlight  : true,
-        orientation     : "bottom",
-        minDate         : minDate,
-        maxDate         : addDate(new Date(), concept > 1 ? 10 : 5),
-        language        : "es"
-    });
-}
+    spinner.addClass("is-active");
 
-function generateDateRangePicker(elem) {
-    return new DateRangePicker(elem[0], {
-        autohide        : true,
-        todayHighlight  : true,
-        orientation     : "bottom",
-        minDate         : addDate(new Date(), 0, -2),
-        maxDate         : addDate(new Date(), 0, 2),
-        language        : "es"
-    });
-}
-
-function validateDatePicker(amount = 1) {
-    if ($(".datepicker").length && $(".datepicker").length < (amount + 1) && !$(".datepicker").hasClass("active")) {
-        return true;
-    }
-
-    return false;
-}
-
-function getDate(date) {
     try {
-        let splitted = date.split("/"),
-            parsed   = new Date(splitted[2], splitted[1] - 1, splitted[0]);
-
-        return parsed;
-    } 
-    catch (e) {
-        return new Date();
+        result = await api.connect();
     }
+    catch (e) {
+        result = { status: "offline", message: e.message };
+    }
+
+    if (result.status !== "ok") {
+        let pages = {
+                "not-configured"    : "configurate.html",
+                "auth"              : "error/configuration.html",
+                "no-points-of-sale" : "error/point_of_sale.html",
+                "offline"           : "error/connection.html"
+            },
+            detail = result.message ? `?detail=${encodeURIComponent(result.message)}` : "";
+
+        goTo(pages[result.status] + detail);
+        return false;
+    }
+
+    input.empty();
+    result.pointsOfSale.forEach(point => {
+        input.append($("<option />", { text: `${point.number}: ${point.type}`, value: point.number }));
+    });
+    input.prop("disabled", result.pointsOfSale.length == 1);
+
+    spinner.removeClass("is-active");
+    return true;
+}
+
+// Fechas: ARCA usa yyyymmdd; siempre se convierten en hora local.
+function toArcaDate(date) {
+    return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
+}
+
+function fromArcaDate(value) {
+    let text = String(value);
+
+    return new Date(Number(text.slice(0, 4)), Number(text.slice(4, 6)) - 1, Number(text.slice(6, 8)));
 }
 
 function addDate(date, days = 0, months = 0) {
-    try {
-        return new Date(date.getFullYear(), date.getMonth() + months, date.getDate() + days);
-    } catch (e) {
-        return new Date();
-    }
+    return new Date(date.getFullYear(), date.getMonth() + months, date.getDate() + days);
 }
 
-function parseAmount(amount) {
-    return (parseFloat(amount)).toLocaleString();
+function formatDate(arcaDate) {
+    return fromArcaDate(arcaDate).toLocaleDateString("es-AR");
 }
 
-async function getCuit() {
-    let cuit;
-
-    await fs.readFile(path.join(assestPath, "cuit.txt"), "utf-8").then((data, err) => {
-        if (!err) {
-            cuit = data;
-        }
-    });
-
-    return cuit;
-}
-
-function getFileName(filePath) {
-    return filePath.replace(/^.*[\\\/]/, '');
-}
-
-function getFileExtension(fileName) {
-    return fileName.split('.').pop();
+function formatAmount(amount) {
+    return Number(amount).toLocaleString("es-AR", { style: "currency", currency: "ARS" });
 }

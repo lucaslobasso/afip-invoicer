@@ -1,12 +1,16 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
   <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
     <title>Croessant</title>
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="stylesheet" href="../../node_modules/@fontsource/lato/400.css">
+    <link rel="stylesheet" href="../../node_modules/@fontsource/lato/700.css">
+    <link rel="stylesheet" href="../../node_modules/animate.css/animate.min.css">
     <link rel="stylesheet" href="../css/main.css">
 
+    <script src="../../node_modules/jquery/dist/jquery.min.js"></script>
     <script src="../../node_modules/@fortawesome/fontawesome-free/js/all.min.js"></script>
     <script src="../../node_modules/bulma-toast/dist/bulma-toast.min.js"></script>
 
@@ -32,29 +36,34 @@
     <section id="app-body" class="section is-flex is-flex-direction-column is-flex-grow-1">
       <fieldset id="configurate-fields" class="is-flex-grow-1">
         <div class="field">
-          <label class="label">CUIT/CUIL</label>
-          <div class="control">
-              <input id="cuit" class="input is-loading" type="number">
+          <label class="label" for="cuit">CUIT/CUIL</label>
+          <div class="control is-loading">
+              <input id="cuit" class="input" type="text" inputmode="numeric" maxlength="13" autocomplete="off">
           </div>
-          <p class="help is-danger is-hidden">Campo inválido.</p>
+          <p class="help is-danger is-hidden">CUIT/CUIL inválido.</p>
         </div>
         <div id="upload-section" class="notification is-info is-light has-text-centered">
           <div class="container mb-2"><span class="icon has-text-info"><i class="fas fa-upload"></i></span></div>
-          Arrastre o haga click aquí para seleccionar los archivos.
+          Arrastre o haga click aquí para seleccionar el certificado y la clave privada.
+        </div>
+        <div id="files-status" class="tags is-centered">
+          <span id="cert-status" class="tag is-medium is-light">Certificado: sin cargar</span>
+          <span id="key-status" class="tag is-medium is-light">Clave: sin cargar</span>
         </div>
         <article class="message">
           <div class="message-body">
-            Para más información sobre la generación de la clave y el certificado visite la 
-            <a href="https://www.afip.gob.ar/ws/documentacion/certificados.asp" target="_blank">página de la AFIP.</a>
+            Para más información sobre la generación de la clave y el certificado visite la
+            <a href="https://www.arca.gob.ar/ws/documentacion/certificados.asp" target="_blank" rel="noopener">página de ARCA.</a>
           </div>
         </article>
       </fieldset>
-      <button id="submitConfig" class="button is-medium is-success is-fullwidth" onclick="submitConfiguration();" type="button">Finalizar</button>
+      <button id="submitConfig" class="button is-medium is-success is-fullwidth" type="button">Finalizar</button>
+      <button id="clearConfig" class="button is-small is-danger is-inverted is-fullwidth mt-3" type="button">Borrar configuración</button>
     </section>
     <footer id="app-footer" class="footer">
       <div class="content has-text-centered">
         <p><strong>Croessant</strong> hecho por Lucas Lobasso.</p>
-        <p>Código open-source disponible en <a href="https://github.com/lucaslobasso/afip_invoicer" target="_blank">Github</a>.</p>
+        <p>Código open-source disponible en <a href="https://github.com/lucaslobasso/afip-invoicer" target="_blank" rel="noopener">Github</a>.</p>
       </div>
     </footer>
   </body>
